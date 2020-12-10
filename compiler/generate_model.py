@@ -105,6 +105,33 @@ def from_i_to_RS(i_src, i_dst, n_bits = 3):
     
     return R,S
 
+def construct_pseudo_program_lines_from_ops(ops):
+    # find where the splits happen
+    pseudo_program_lines = []
+    # get right slices
+    parts = []
+    splits = []
+    counter = 0
+    for op in ops:
+        if "^" in op:
+            split = op.split("^")
+            del ops[counter]
+            ops.insert(counter, split[1].split()[1])
+            ops.insert(counter, split[1].split()[0])
+            ops.insert(counter, split[0])
+            splits.append(counter+1)
+        counter += 1
+    start = 0
+    for split in splits:
+        parts.append(ops[start:split])
+        start = split
+    parts.append(ops[start:])
+
+    for part in parts:
+        instr = part[0].strip()
+        pseudo_program_lines.append(instr + " " + ",".join(part[1:]))
+    return pseudo_program_lines
+
 def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, operands, prog, prog_params, n_bits):
     if instr == "if" or instr == "do-while":
         if instr == "if":
@@ -122,10 +149,13 @@ def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, op
 
         condition.append(ops[0])
         operands.add(ops[0])
+        lines = construct_pseudo_program_lines_from_ops(ops[1:])
+        for line in lines:
+            for instr, ops in parse_program_line(line):
+             parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, operands, prog,
+                                              prog_params, n_bits)
 
-        instr = ops[1]
-        ops = ops[2:]
-        return parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, operands, prog, prog_params, n_bits)
+        return True
 
 
     elif instr == "while":
@@ -231,7 +261,8 @@ def parse_program_line(line):
             instr = (l[0].split()[0]).lower().strip()
         except:
             instr = l[0].strip()
-        instr_opers.append([instr, ops])
+            ops = None
+        instr_opers.append((instr, ops))
     return instr_opers
 
 
