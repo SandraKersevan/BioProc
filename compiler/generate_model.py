@@ -123,9 +123,11 @@ def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, op
         condition.append(ops[0])
         operands.add(ops[0])
 
-        #will do something else here
         instr = ops[1]
         ops = ops[2:]
+        return parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, operands, prog, prog_params, n_bits)
+
+
     elif instr == "while":
         # preverim, ce je izpolnjen pogoj, ce ni skocim naprej
         i_src = "i" + str(addr)
@@ -150,9 +152,10 @@ def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, op
         operands.add(ops[0])
         instr = ops[1]
         ops = ops[2:]
+        return parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, operands, prog, prog_params, n_bits)
 
     if instr == 'nop':
-        pass
+        return
     elif instr == 'generate':
         o = ops[0]
         operands.add(o)
@@ -164,6 +167,7 @@ def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, op
         prog_params |= {alpha, Kd, n}
 
         prog[o] += "+" + alpha + "*activate_1(i" + str(addr) + ",prog_Kd_" + o + ",prog_n_" + o + ")"
+        return True
 
     elif instr == 'add' or instr == 'sub':
         o = ops[0].strip()
@@ -187,6 +191,8 @@ def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, op
         else:
             prog[o] += "+" + alpha + "*hybrid_AAR(i" + str(
                 addr) + "," + op1 + ',' + op2 + ",prog_Kd_" + o + ",prog_n_" + o + ")"
+        return True
+
     elif instr == "halt":
         i_src = "i" + str(addr + 1)
         i_dst = "i" + str(addr)
@@ -195,9 +201,7 @@ def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, op
         r, s = from_i_to_RS(i_src, i_dst, n_bits=n_bits)
         R.append(r)
         S.append(s)
-
-        #TODO find out what this break did
-        #break
+        return False
 
     elif instr == "jump" or instr == "jumpif":
 
@@ -215,6 +219,7 @@ def parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, op
         r, s = from_i_to_RS(i_src, i_dst, n_bits=n_bits)
         R.append(r)
         S.append(s)
+        return True
 
 
 def parse_program_line(line):
@@ -228,7 +233,6 @@ def parse_program_line(line):
             instr = l[0].strip()
         instr_opers.append([instr, ops])
     return instr_opers
-
 
 
 ####################################
@@ -261,7 +265,10 @@ def generate_model(program_name, output_name, n_bits, prog_alpha, prog_delta, pr
 
     for line in f_prog:
         for instr, ops in parse_program_line(line):
-            parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, operands, prog, prog_params, n_bits)
+            #parse_program_instructions returns False on a halt instruction
+            # TODO deal with halt inside if
+            if not parse_program_instructions(instr, ops, addr, inhibition, condition, R, S, operands, prog, prog_params, n_bits):
+                break
         addr += 1
 
     for o in operands: # dodam razgradnjo tudi za tiste, ki sicer nimajo enacbe
