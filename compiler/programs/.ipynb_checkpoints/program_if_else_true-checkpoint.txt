@@ -1,0 +1,2 @@
+generate A
+if A generate B else generate C
