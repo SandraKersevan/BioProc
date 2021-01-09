@@ -319,13 +319,12 @@ def generate_model(program_name, output_name, n_bits, prog_alpha, prog_delta, pr
     # Read and parse program according to grammar
     parsed_program = model.model_from_file(program_name)
     for line in parsed_program.lines:
-        do_not_continue = None
         for command in line.commands:
             addr = do_command(command, condition,operands, addr,inhibition,R,S, prog_params, prog,  n_bits)
             if not addr:
                 # if there is no current addres, we're halting!
                 break
-        if do_not_continue:
+        if not addr:
             break
         addr += 1
 
