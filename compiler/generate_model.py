@@ -187,7 +187,11 @@ def do_command(command,condition,operands, addr,inhibition,R,S, prog_params, pro
             condition.append(command.condition)
             for cmnd in command.commands_else:
                 do_command(cmnd, condition, operands, addr + 1, inhibition, R, S, prog_params, prog, n_bits)
-        return addr + 1
+            # we moved one address
+            return addr + 1
+        else:
+            # if there's no else branch we stay on the same address
+            return addr
 
     if instr == "dowhile": # do-while
         i_src = "i" + str(addr + 1)
@@ -322,7 +326,7 @@ def generate_model(program_name, output_name, n_bits, prog_alpha, prog_delta, pr
         for command in line.commands:
             addr = do_command(command, condition,operands, addr,inhibition,R,S, prog_params, prog,  n_bits)
             if not addr:
-                # if there is no current addres, we're halting!
+                # if there is no current address, we're halting!
                 break
         if not addr:
             break
